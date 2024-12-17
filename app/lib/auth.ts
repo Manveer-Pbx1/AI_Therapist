@@ -82,19 +82,6 @@ export const authOptions: NextAuthOptions = {
                     );
                 }
 
-                // Send reminder email for all users (both new and existing)
-                await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: profile?.email,
-                        name: profile?.name,
-                        type: 'reminder'
-                    }),
-                });
-
                 return true;
             } catch (error) {
                 console.error("Error signing in:", error);
