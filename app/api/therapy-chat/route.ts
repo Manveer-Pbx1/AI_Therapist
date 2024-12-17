@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const userInput = body.input;
-    const userId = body.user_id || 'anonymous'; // Provide default if missing
+    const userId = body.user_id || 'anonymous';
 
     if (!userInput || typeof userInput !== 'string') {
       return NextResponse.json(
@@ -14,33 +14,55 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await axios.post("https://ai-therapist-backend-7rre.onrender.com/get-therapy-response", {
-      input: userInput.trim(),
-      user_id: userId
-    },
-    {
-      headers: {
-        "Content-Type": "application/json"
+    const response = await axios.post(
+      "https://ai-therapist-backend-7rre.onrender.com/get-therapy-response",
+      {
+        input: userInput.trim(),
+        user_id: userId
+      },
+      {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        timeout: 60000, // 60 second timeout
+        timeoutErrorMessage: "Request timed out. The server is taking too long to respond."
       }
-    });
+    );
 
     // Log the exact structure
     console.log("Raw FastAPI response:", response.data);
     
-    // Correct way to access nested data
+    if (!response.data || !response.data.response) {
+      throw new Error("Invalid response format from backend");
+    }
+
     const responseData = response.data.response;
     console.log("Response data object:", responseData);
     
-    // Extract emotion and response from the correct nesting
     return NextResponse.json({
       response: responseData.response,
       emotion: responseData.emotion
     });
-  } catch (error) {
+
+  } catch (error: any) {
     console.error("Detailed error:", error);
+    let errorMessage = "Something went wrong";
+    let statusCode = 500;
+
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = "Request timed out. Please try again.";
+      statusCode = 504;
+    } else if (error.response) {
+      errorMessage = error.response.data?.error || "Server error occurred";
+      statusCode = error.response.status;
+    }
+
     return NextResponse.json(
-      { response: "Something went wrong" }, 
-      { status: 500 }
+      { 
+        error: errorMessage,
+        response: "I apologize, but I'm having trouble connecting to the server. Please try again in a moment." 
+      },
+      { status: statusCode }
     );
   }
 }
