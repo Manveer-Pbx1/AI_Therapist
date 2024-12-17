@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await axios.post("http://127.0.0.1:8000/get-therapy-response", {
+    const response = await axios.post("https://ai-therapist-backend-7rre.onrender.com/get-therapy-response", {
       input: userInput.trim(),
       user_id: userId
     },
