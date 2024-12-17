@@ -7,7 +7,7 @@ import { BsFlower1 } from 'react-icons/bs'
 
 function Home() {
   const router = useRouter();
-  return (
+  return ( 
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
       <Navbar />
       
