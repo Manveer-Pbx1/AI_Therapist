@@ -307,64 +307,51 @@ export default function Chat() {
     };
     
     setMessages(prev => [...prev, userMessage]);
-    
     setIsTyping(true);
+
     try {
-      console.log("Sending request with input:", userInput.trim());
+      console.log("[DEBUG] Sending request with input:", userInput.trim());
       const response = await axios.post("/api/therapy-chat", {
         input: userInput.trim(),
         user_id: session?.user?.id || "anonymous"
       });
       
-      // Add detailed response logging
-      console.log("Raw API response:", response);
-      console.log("Response data:", response.data);
-      console.log("Emotion from response:", response.data.emotion);
+      console.log("[DEBUG] Raw API response:", response);
+      console.log("[DEBUG] Response data:", response.data);
 
-      if (response.data.emotion) {
-        const emotion = response.data.emotion.toLowerCase();
-        console.log("Setting emotion to:", emotion);
-        setEmotion(emotion);
-      } else {
-        console.warn("No emotion detected in response:", response.data);
+      if (!response.data || (!response.data.response && !response.data.error)) {
+        throw new Error("Invalid response format");
       }
 
-      // Ensure response.data.response is a string
-      const botResponse = typeof response.data.response === 'string' 
-        ? response.data.response 
-        : JSON.stringify(response.data.response);
+      if (response.data.error) {
+        throw new Error(response.data.response || "Server error");
+      }
+
+      const emotion = response.data.emotion?.toLowerCase() || 'neutral';
+      console.log("[DEBUG] Setting emotion to:", emotion);
+      setEmotion(emotion);
 
       const botMessage = { 
         id: (Date.now() + 1).toString(), 
-        content: botResponse,
+        content: response.data.response,
         isBot: true,
         isNew: true
       };
 
       setMessages(prev => [...prev, botMessage]);
-
-      // Save the updated chat to database
-      if (session?.user?.id) {
-        await axios.post("/api/chat", {
-          userId: session.user.id,
-          messages: [...messages, userMessage, botMessage].map(msg => ({
-            content: msg.content,
-            isBot: msg.isBot,
-            timestamp: new Date()
-          }))
-        });
-      }
       
       if (voiceMode) {
         speakText(botMessage.content);
       }
       
       setUserInput("");
-    } catch (error) {
-      console.error("Error with full details:", error);
+      
+    } catch (error: any) {
+      console.error("[ERROR] Full error details:", error);
+      const errorMessage = error.response?.data?.response || error.message || "An error occurred";
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
-        content: "Sorry, I encountered an error. Please try again.", 
+        content: errorMessage, 
         isBot: true 
       }]);
     } finally {

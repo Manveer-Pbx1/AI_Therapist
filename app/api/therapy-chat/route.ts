@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("Sending request to backend with data:", {
+    console.log("[DEBUG] Sending request to backend with data:", {
       input: userInput.trim(),
       user_id: userId
     });
@@ -53,22 +53,29 @@ export async function POST(request: Request) {
       }
     );
 
-    console.log("Raw backend response:", response.data);
+    console.log("[DEBUG] Raw backend response:", response.data);
 
-    // Validate response structure
-    if (!response.data || typeof response.data !== 'object') {
+    // Handle nested response structure
+    const responseData = response.data.response || response.data;
+    console.log("[DEBUG] Processed response data:", responseData);
+
+    // Ensure we have the required fields
+    if (!responseData || (!responseData.response && typeof responseData !== 'string')) {
+      console.error("[ERROR] Invalid response structure:", responseData);
       throw new Error("Invalid response format from backend");
     }
 
-    const responseData = response.data.response || response.data;
-    
-    return NextResponse.json({
-      response: responseData.response || responseData,
+    // Format the response properly
+    const formattedResponse = {
+      response: typeof responseData === 'string' ? responseData : responseData.response,
       emotion: responseData.emotion || 'neutral'
-    });
+    };
+
+    console.log("[DEBUG] Sending formatted response to frontend:", formattedResponse);
+    return NextResponse.json(formattedResponse);
 
   } catch (error: any) {
-    console.error("Detailed error in route handler:", error);
+    console.error("[ERROR] Detailed error in route handler:", error);
     
     const errorResponse = {
       error: true,
