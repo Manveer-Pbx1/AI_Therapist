@@ -298,7 +298,7 @@ export default function Chat() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-
+  
     const userMessage = { 
       id: Date.now().toString(), 
       content: userInput, 
@@ -308,55 +308,52 @@ export default function Chat() {
     
     setMessages(prev => [...prev, userMessage]);
     setIsTyping(true);
-
-    try {
-      console.log("[DEBUG] Sending request with input:", userInput.trim());
-      const response = await axios.post("/api/therapy-chat", {
-        input: userInput.trim(),
-        user_id: session?.user?.id || "anonymous"
-      });
-      
-      console.log("[DEBUG] Raw API response:", response);
-      console.log("[DEBUG] Response data:", response.data);
-
-      if (!response.data || (!response.data.response && !response.data.error)) {
-        throw new Error("Invalid response format");
+    let retries = 0;
+    const maxRetries = 3;
+  
+    const attemptRequest = async () => {
+      try {
+        const response = await axios.post("/api/therapy-chat", {
+          input: userInput.trim(),
+          user_id: session?.user?.id || "anonymous"
+        });
+        
+        if (response.data.error) {
+          // If we get an error response but it's still processing
+          if (retries < maxRetries) {
+            retries++;
+            console.log(`[DEBUG] Retrying request ${retries}/${maxRetries}`);
+            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+            return attemptRequest();
+          }
+        }
+  
+        const botMessage = { 
+          id: (Date.now() + 1).toString(), 
+          content: response.data.response,
+          isBot: true,
+          isNew: true
+        };
+  
+        if (response.data.emotion) {
+          setEmotion(response.data.emotion.toLowerCase());
+        }
+  
+        setMessages(prev => [...prev, botMessage]);
+        setUserInput("");
+        
+      } catch (error: any) {
+        console.error("[ERROR] Request failed:", error);
+        setMessages(prev => [...prev, { 
+          id: Date.now().toString(), 
+          content: "I'm still thinking about your message. Please wait a moment and try again.", 
+          isBot: true 
+        }]);
       }
-
-      if (response.data.error) {
-        throw new Error(response.data.response || "Server error");
-      }
-
-      const emotion = response.data.emotion?.toLowerCase() || 'neutral';
-      console.log("[DEBUG] Setting emotion to:", emotion);
-      setEmotion(emotion);
-
-      const botMessage = { 
-        id: (Date.now() + 1).toString(), 
-        content: response.data.response,
-        isBot: true,
-        isNew: true
-      };
-
-      setMessages(prev => [...prev, botMessage]);
-      
-      if (voiceMode) {
-        speakText(botMessage.content);
-      }
-      
-      setUserInput("");
-      
-    } catch (error: any) {
-      console.error("[ERROR] Full error details:", error);
-      const errorMessage = error.response?.data?.response || error.message || "An error occurred";
-      setMessages(prev => [...prev, { 
-        id: Date.now().toString(), 
-        content: errorMessage, 
-        isBot: true 
-      }]);
-    } finally {
-      setIsTyping(false);
-    }
+    };
+  
+    await attemptRequest();
+    setIsTyping(false);
   };
 
   const handleStopVoiceChat = () => {

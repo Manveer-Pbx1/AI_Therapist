@@ -2,25 +2,29 @@ import axios from "axios";
 import { NextResponse } from "next/server";
 
 const MAX_RETRIES = 3;
-const INITIAL_TIMEOUT = 30000; // 30 seconds
+const INITIAL_TIMEOUT = 120000; // 120 seconds
 
 async function makeRequestWithRetry(url: string, data: any, retryCount = 0) {
   try {
+    console.log(`[DEBUG] Attempt ${retryCount + 1} - Sending request to: ${url}`);
     const response = await axios.post(url, data, {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
       },
-      timeout: INITIAL_TIMEOUT * (retryCount + 1), // Increase timeout with each retry
-      timeoutErrorMessage: "Request timed out. The server is taking too long to respond."
+      timeout: INITIAL_TIMEOUT,
+      validateStatus: (status) => status < 500, // Accept any status < 500
     });
     
+    console.log(`[DEBUG] Received response:`, response.data);
     return response;
   } catch (error: any) {
-    console.error(`Attempt ${retryCount + 1} failed:`, error.message);
+    console.error(`[ERROR] Attempt ${retryCount + 1} failed:`, error.message);
     
-    if (retryCount < MAX_RETRIES && 
-        (error.code === 'ECONNABORTED' || error.response?.status === 504)) {
-      console.log(`Retrying... Attempt ${retryCount + 2}`);
+    if (retryCount < MAX_RETRIES) {
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+      console.log(`[DEBUG] Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
       return makeRequestWithRetry(url, data, retryCount + 1);
     }
     throw error;
@@ -30,69 +34,49 @@ async function makeRequestWithRetry(url: string, data: any, retryCount = 0) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const userInput = body.input;
-    const userId = body.user_id || 'anonymous';
-
-    if (!userInput || typeof userInput !== 'string') {
-      return NextResponse.json(
-        { error: "Invalid input" },
-        { status: 400 }
-      );
-    }
-
-    console.log("[DEBUG] Sending request to backend with data:", {
-      input: userInput.trim(),
-      user_id: userId
-    });
+    console.log("[DEBUG] Received request body:", body);
 
     const response = await makeRequestWithRetry(
       "https://ai-therapist-backend-7rre.onrender.com/get-therapy-response",
       {
-        input: userInput.trim(),
-        user_id: userId
+        input: body.input.trim(),
+        user_id: body.user_id || 'anonymous'
       }
     );
 
-    console.log("[DEBUG] Raw backend response:", response.data);
-
-    // Handle nested response structure
-    const responseData = response.data.response || response.data;
-    console.log("[DEBUG] Processed response data:", responseData);
-
-    // Ensure we have the required fields
-    if (!responseData || (!responseData.response && typeof responseData !== 'string')) {
-      console.error("[ERROR] Invalid response structure:", responseData);
-      throw new Error("Invalid response format from backend");
+    // Handle different response structures
+    let formattedResponse;
+    if (response.data.response?.response) {
+      // New structure
+      formattedResponse = {
+        response: response.data.response.response,
+        emotion: response.data.response.emotion || 'neutral'
+      };
+    } else if (typeof response.data === 'object') {
+      // Old structure
+      formattedResponse = {
+        response: response.data.response || response.data.message || "Received response",
+        emotion: response.data.emotion || 'neutral'
+      };
+    } else {
+      formattedResponse = {
+        response: String(response.data),
+        emotion: 'neutral'
+      };
     }
 
-    // Format the response properly
-    const formattedResponse = {
-      response: typeof responseData === 'string' ? responseData : responseData.response,
-      emotion: responseData.emotion || 'neutral'
-    };
-
-    console.log("[DEBUG] Sending formatted response to frontend:", formattedResponse);
+    console.log("[DEBUG] Sending formatted response:", formattedResponse);
     return NextResponse.json(formattedResponse);
 
   } catch (error: any) {
-    console.error("[ERROR] Detailed error in route handler:", error);
+    console.error("[ERROR] Full error details:", error);
     
-    const errorResponse = {
+    // Send a more graceful error response
+    return NextResponse.json({
       error: true,
-      response: "I apologize, but I'm having trouble connecting. Please try again in a moment.",
-      details: error.message
-    };
-
-    // Determine appropriate status code
-    let statusCode = 500;
-    if (error.code === 'ECONNABORTED' || error.response?.status === 504) {
-      statusCode = 504;
-      errorResponse.response = "The server is taking too long to respond. Please try again.";
-    } else if (error.response?.status) {
-      statusCode = error.response.status;
-    }
-
-    return NextResponse.json(errorResponse, { status: statusCode });
+      response: "I'm still processing your message. Please give me a moment.",
+      emotion: 'neutral'
+    }, { status: 200 }); // Send 200 instead of error status
   }
 }
 
