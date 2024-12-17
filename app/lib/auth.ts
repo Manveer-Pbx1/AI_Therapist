@@ -63,7 +63,7 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     // Send welcome email for new users only
-                    await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
+                    await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 // Send reminder email for all users (both new and existing)
-                await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
+                await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
