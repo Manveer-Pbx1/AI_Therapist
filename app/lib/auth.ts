@@ -22,6 +22,13 @@ export const authOptions: NextAuthOptions = {
         GoogleProvider({
             clientId: process.env.GOOGLE_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            authorization: {
+                params: {
+                    prompt: "consent", // Force re-consent if permissions change
+                    access_type: "offline", // Allows refresh tokens
+                    scope: "openid profile email",
+                },
+            },
         }),
     ],
     callbacks: {
@@ -56,7 +63,7 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     // Send welcome email for new users only
-                    await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
+                    await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -76,7 +83,7 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 // Send reminder email for all users (both new and existing)
-                await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
+                await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
