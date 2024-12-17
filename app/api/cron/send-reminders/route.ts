@@ -15,22 +15,42 @@ export async function GET(request: Request) {
             return new Response('Unauthorized', { status: 401 });
         }
 
-        // Trigger email sending for all users
-        const response = await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ type: 'batch-reminder' })
+        await connectToDB();
+        
+        // Get current date and date 2 days ago
+        const now = new Date();
+        const twoDaysAgo = new Date(now.getTime() - (2 * 24 * 60 * 60 * 1000));
+
+        // Find users who haven't received a reminder in the last 2 days
+        const eligibleUsers = await User.find({
+            last_reminder_sent: { $lt: twoDaysAgo }
         });
 
-        if (!response.ok) {
-            throw new Error('Failed to send reminder emails');
+        // Send emails to eligible users
+        for (const user of eligibleUsers) {
+            const response = await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: user.email,
+                    name: user.username,
+                    type: 'reminder'
+                })
+            });
+
+            if (response.ok) {
+                // Update last_reminder_sent timestamp
+                await User.findByIdAndUpdate(user._id, {
+                    last_reminder_sent: now
+                });
+            }
         }
 
         return NextResponse.json({
             success: true,
-            message: 'Reminder emails triggered successfully'
+            message: `Reminder emails sent to ${eligibleUsers.length} users`
         });
     } catch (error) {
         console.error('Cron job error:', error);

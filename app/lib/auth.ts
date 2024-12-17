@@ -60,10 +60,11 @@ export const authOptions: NextAuthOptions = {
                         username: profile?.name?.replace(/\s+/g, "").toLowerCase(),
                         email: profile?.email,
                         image: profile?.image,
+                        last_reminder_sent: new Date(0) // Initialize with past date
                     });
 
                     // Send welcome email for new users only
-                    await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
+                    await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -81,19 +82,6 @@ export const authOptions: NextAuthOptions = {
                         { image: profile?.picture || profile?.image }
                     );
                 }
-
-                // Send reminder email for all users (both new and existing)
-                await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: profile?.email,
-                        name: profile?.name,
-                        type: 'reminder'
-                    }),
-                });
 
                 return true;
             } catch (error) {
