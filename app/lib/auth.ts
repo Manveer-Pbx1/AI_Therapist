@@ -54,16 +54,26 @@ export const authOptions: NextAuthOptions = {
             try {
                 await connectToDB();
                 const userExists = await User.findOne({ email: profile?.email });
+                let isNewUser = false;
 
                 if (!userExists) {
+                    isNewUser = true;
                     await User.create({
                         username: profile?.name?.replace(/\s+/g, "").toLowerCase(),
                         email: profile?.email,
                         image: profile?.image,
-                        last_reminder_sent: new Date(0) // Initialize with past date
+                        last_reminder_sent: new Date(0)
                     });
+                } else {
+                    // Update the existing user's image if it changed
+                    await User.findOneAndUpdate(
+                        { email: profile?.email },
+                        { image: profile?.picture || profile?.image }
+                    );
+                }
 
-                    // Send welcome email for new users only
+                // Only send welcome email if this is a new user
+                if (isNewUser) {
                     const emailResponse = await fetch('https://ai-therapist-pi.vercel.app/api/email', {
                         method: "POST",
                         headers: {
@@ -79,12 +89,6 @@ export const authOptions: NextAuthOptions = {
                     if (!emailResponse.ok) {
                         console.error('Failed to send welcome email:', await emailResponse.text());
                     }
-                } else {
-                    // Update the existing user's image if it changed
-                    await User.findOneAndUpdate(
-                        { email: profile?.email },
-                        { image: profile?.picture || profile?.image }
-                    );
                 }
 
                 return true;
