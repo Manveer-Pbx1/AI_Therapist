@@ -64,7 +64,7 @@ export const authOptions: NextAuthOptions = {
                     });
 
                     // Send welcome email for new users only
-                    await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
+                    const emailResponse = await fetch('https://ai-therapist-pi.vercel.app/api/email', {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -75,6 +75,10 @@ export const authOptions: NextAuthOptions = {
                             type: 'welcome'
                         }),
                     });
+
+                    if (!emailResponse.ok) {
+                        console.error('Failed to send welcome email:', await emailResponse.text());
+                    }
                 } else {
                     // Update the existing user's image if it changed
                     await User.findOneAndUpdate(
