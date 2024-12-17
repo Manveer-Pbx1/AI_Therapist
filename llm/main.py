@@ -26,10 +26,15 @@ async def get_therapy_response_route(user_input: UserInput):
         result = get_therapy_response(user_input.user_id, user_input.input)
         print("[DEBUG] Generated response:", result)
         
-        # Ensure proper response structure
+        # Clean up the response text
+        response_text = result["response"]
+        if "RESPONSE:" in response_text:
+            response_text = response_text.split("RESPONSE:")[1].strip()
+        
+        # Format the response properly
         response_data = {
             "response": {
-                "response": result["response"],
+                "response": response_text,
                 "emotion": result["emotion"]
             }
         }

@@ -44,26 +44,31 @@ export async function POST(request: Request) {
       }
     );
 
-    // Handle different response structures
-    let formattedResponse;
+    // Clean and format the response
+    let responseText = '';
+    let emotion = 'neutral';
+
     if (response.data.response?.response) {
-      // New structure
-      formattedResponse = {
-        response: response.data.response.response,
-        emotion: response.data.response.emotion || 'neutral'
-      };
-    } else if (typeof response.data === 'object') {
-      // Old structure
-      formattedResponse = {
-        response: response.data.response || response.data.message || "Received response",
-        emotion: response.data.emotion || 'neutral'
-      };
-    } else {
-      formattedResponse = {
-        response: String(response.data),
-        emotion: 'neutral'
-      };
+      responseText = response.data.response.response;
+      emotion = response.data.response.emotion;
+    } else if (typeof response.data.response === 'string') {
+      // Clean up the response if it still contains the format markers
+      responseText = response.data.response.includes('RESPONSE:') 
+        ? response.data.response.split('RESPONSE:')[1].trim()
+        : response.data.response;
+      emotion = response.data.emotion || 'neutral';
     }
+
+    // Remove any remaining "EMOTION:" or "RESPONSE:" markers
+    responseText = responseText
+      .replace(/EMOTION:.*\n?/i, '')
+      .replace(/RESPONSE:.*\n?/i, '')
+      .trim();
+
+    const formattedResponse = {
+      response: responseText,
+      emotion: emotion
+    };
 
     console.log("[DEBUG] Sending formatted response:", formattedResponse);
     return NextResponse.json(formattedResponse);
