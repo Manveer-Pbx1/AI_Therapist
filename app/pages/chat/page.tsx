@@ -278,9 +278,9 @@ export default function Chat() {
     const loadPreviousChat = async () => {
       if (session?.user?.id) {
         try {
-          const response = await axios.get(`/api/chat?userId=${session.user.id}`);
-          if (response.data.success && response.data.chats.length > 0) {
-            // Load messages without isNew flag
+          const response = await axios.get(`https://ai-therapist-pi.vercel.app/api/chat?userId=${session.user.id}`);
+          console.log("Loading chat response:", response.data); // Debug log
+          if (response.data.success && response.data.chats && response.data.chats.length > 0) {
             setMessages(response.data.chats[0].messages.map((msg: any) => ({
               ...msg,
               isNew: false
@@ -288,6 +288,13 @@ export default function Chat() {
           }
         } catch (error) {
           console.error("Error loading previous chat:", error);
+          // Optional: Add user-friendly error message
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            content: "Could not load previous messages. Please try refreshing the page.",
+            isBot: true,
+            isNew: false
+          }]);
         }
       }
     };
@@ -313,47 +320,29 @@ export default function Chat() {
   
     const attemptRequest = async () => {
       try {
-        const response = await axios.post("/api/therapy-chat", {
+        const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
           input: userInput.trim(),
           user_id: session?.user?.id || "anonymous"
         });
         
-        if (response.data.error) {
-          // If we get an error response but it's still processing
-          if (retries < maxRetries) {
-            retries++;
-            console.log(`[DEBUG] Retrying request ${retries}/${maxRetries}`);
-            await new Promise(resolve => setTimeout(resolve, 2000 * retries));
-            return attemptRequest();
-          }
-        }
-  
-        const botMessage = { 
-          id: (Date.now() + 1).toString(), 
-          content: response.data.response,
-          isBot: true,
-          isNew: true
-        };
-  
-        if (response.data.emotion) {
-          setEmotion(response.data.emotion.toLowerCase());
-        }
-  
-        setMessages(prev => [...prev, botMessage]);
-        setUserInput("");
+        console.log("Chat response:", response.data); // Debug log
         
-      } catch (error: any) {
-        console.error("[ERROR] Request failed:", error);
-        setMessages(prev => [...prev, { 
-          id: Date.now().toString(), 
-          content: "I'm still thinking about your message. Please wait a moment and try again.", 
-          isBot: true 
-        }]);
+        // ...rest of the existing handleSubmit code...
+      } catch (error) {
+        console.error("Error in chat request:", error);
+        // Add more detailed error logging
+        if (axios.isAxiosError(error)) {
+          console.error("Axios error details:", {
+            status: error.response?.status,
+            data: error.response?.data,
+            headers: error.response?.headers
+          });
+        }
+        throw error;
       }
     };
   
-    await attemptRequest();
-    setIsTyping(false);
+    // ...rest of the existing code...
   };
 
   const handleStopVoiceChat = () => {
