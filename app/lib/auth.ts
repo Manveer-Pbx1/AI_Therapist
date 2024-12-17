@@ -23,12 +23,12 @@ export const authOptions: NextAuthOptions = {
             clientId: process.env.GOOGLE_ID as string,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
             authorization: {
-                params: {
-                    prompt: "consent", // Force re-consent if permissions change
-                    access_type: "offline", // Allows refresh tokens
-                    scope: "openid profile email",
-                },
-            },
+        params: {
+            prompt: "consent", // Force re-consent if permissions change
+            access_type: "offline", // Allows refresh tokens
+            scope: "openid profile email",
+        },
+    },
         }),
     ],
     callbacks: {
@@ -54,27 +54,16 @@ export const authOptions: NextAuthOptions = {
             try {
                 await connectToDB();
                 const userExists = await User.findOne({ email: profile?.email });
-                let isNewUser = false;
 
                 if (!userExists) {
-                    isNewUser = true;
                     await User.create({
                         username: profile?.name?.replace(/\s+/g, "").toLowerCase(),
                         email: profile?.email,
                         image: profile?.image,
-                        last_reminder_sent: new Date(0)
                     });
-                } else {
-                    // Update the existing user's image if it changed
-                    await User.findOneAndUpdate(
-                        { email: profile?.email },
-                        { image: profile?.picture || profile?.image }
-                    );
-                }
 
-                // Only send welcome email if this is a new user
-                if (isNewUser) {
-                    const emailResponse = await fetch('https://ai-therapist-pi.vercel.app/api/email', {
+                    // Send welcome email for new users only
+                    await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -85,11 +74,26 @@ export const authOptions: NextAuthOptions = {
                             type: 'welcome'
                         }),
                     });
-
-                    if (!emailResponse.ok) {
-                        console.error('Failed to send welcome email:', await emailResponse.text());
-                    }
+                } else {
+                    // Update the existing user's image if it changed
+                    await User.findOneAndUpdate(
+                        { email: profile?.email },
+                        { image: profile?.picture || profile?.image }
+                    );
                 }
+
+                // Send reminder email for all users (both new and existing)
+                await fetch(`https://ai-therapist-pi.vercel.app/api/email`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: profile?.email,
+                        name: profile?.name,
+                        type: 'reminder'
+                    }),
+                });
 
                 return true;
             } catch (error) {
