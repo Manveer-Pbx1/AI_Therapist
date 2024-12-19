@@ -153,7 +153,7 @@ export default function Chat() {
 
             setIsTyping(true);
             try {
-              const response = await axios.post("https://ai-therapist-backend-7rre.onrender.com/get-therapy-response", {
+              const response = await axios.post("/api/therapy-chat", {
                 input: finalTranscript,
                 user_id: session?.user.id || "anonymous"
               }, {
