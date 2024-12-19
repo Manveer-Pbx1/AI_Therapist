@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     console.log("[DEBUG] Received request body:", body);
 
     const response = await makeRequestWithRetry(
-      "https://ai-therapy-bot-backend-81f7h80uv-manveers-projects-5a610783.vercel.app/get-therapy-response",
+      "https://ai-therapy-bot-backend.vercel.app/get-therapy-response",
       {
         input: body.input.trim(),
         user_id: body.user_id || 'anonymous'
