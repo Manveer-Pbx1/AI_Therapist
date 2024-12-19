@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     console.log("[DEBUG] Received request body:", body);
 
     const response = await makeRequestWithRetry(
-      "https://ai-therapy-bot-backend.vercel.app/get-therapy-response",
+      "https://ai-therapist-backend-7rre.onrender.com/get-therapy-response",
       {
         input: body.input.trim(),
         user_id: body.user_id || 'anonymous'
@@ -75,7 +75,8 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error("[ERROR] Full error details:", error);
-    
+    console.error("[ERROR] Backend responded with:", error.response?.data);
+
     // Send a more graceful error response
     return NextResponse.json({
       error: true,

@@ -153,7 +153,7 @@ export default function Chat() {
 
             setIsTyping(true);
             try {
-              const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
+              const response = await axios.post("/api/therapy-chat", {
                 input: finalTranscript,
                 user_id: session?.user.id || "anonymous"
               });
@@ -278,7 +278,7 @@ export default function Chat() {
     const loadPreviousChat = async () => {
       if (session?.user?.id) {
         try {
-          const response = await axios.get(`https://ai-therapist-pi.vercel.app/api/chat?userId=${session.user.id}`);
+          const response = await axios.get(`/api/chat?userId=${session.user.id}`);
           console.log("Loading chat response:", response.data); // Debug log
           if (response.data.success && response.data.chats && response.data.chats.length > 0) {
             setMessages(response.data.chats[0].messages.map((msg: any) => ({
@@ -320,6 +320,7 @@ export default function Chat() {
   
     const attemptRequest = async () => {
       try {
+        console.log("Route hit!");
         const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
           input: userInput.trim(),
           user_id: session?.user?.id || "anonymous"
