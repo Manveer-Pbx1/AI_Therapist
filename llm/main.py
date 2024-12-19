@@ -16,6 +16,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/health-check")
+def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
 @app.post("/get-therapy-response")
 async def get_therapy_response_route(user_input: UserInput):
     """Handle user input and return the therapist's response."""
