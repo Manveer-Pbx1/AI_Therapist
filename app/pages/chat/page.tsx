@@ -153,11 +153,9 @@ export default function Chat() {
 
             setIsTyping(true);
             try {
-              const response = await axios.post("/api/therapy-chat", {
+              const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
                 input: finalTranscript,
                 user_id: session?.user.id || "anonymous"
-              }, {
-                timeout: 15000
               });
               
               console.log("Voice response data:", response.data);
