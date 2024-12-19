@@ -153,7 +153,7 @@ export default function Chat() {
 
             setIsTyping(true);
             try {
-              const response = await axios.post("/api/therapy-chat", {
+              const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
                 input: finalTranscript,
                 user_id: session?.user.id || "anonymous"
               });
@@ -279,8 +279,8 @@ export default function Chat() {
       if (session?.user?.id) {
         try {
           const response = await axios.get(`/api/chat?userId=${session.user.id}`);
-          console.log("Loading chat response:", response.data); // Debug log
-          if (response.data.success && response.data.chats && response.data.chats.length > 0) {
+          if (response.data.success && response.data.chats.length > 0) {
+            // Load messages without isNew flag
             setMessages(response.data.chats[0].messages.map((msg: any) => ({
               ...msg,
               isNew: false
@@ -288,13 +288,6 @@ export default function Chat() {
           }
         } catch (error) {
           console.error("Error loading previous chat:", error);
-          // Optional: Add user-friendly error message
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            content: "Could not load previous messages. Please try refreshing the page.",
-            isBot: true,
-            isNew: false
-          }]);
         }
       }
     };
@@ -305,7 +298,7 @@ export default function Chat() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
-  
+
     const userMessage = { 
       id: Date.now().toString(), 
       content: userInput, 
@@ -314,36 +307,69 @@ export default function Chat() {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    
     setIsTyping(true);
-    let retries = 0;
-    const maxRetries = 3;
-  
-    const attemptRequest = async () => {
-      try {
-        console.log("Route hit!");
-        const response = await axios.post("https://ai-therapist-pi.vercel.app/api/therapy-chat", {
-          input: userInput.trim(),
-          user_id: session?.user?.id || "anonymous"
-        });
-        
-        console.log("Chat response:", response.data); // Debug log
-        
-        // ...rest of the existing handleSubmit code...
-      } catch (error) {
-        console.error("Error in chat request:", error);
-        // Add more detailed error logging
-        if (axios.isAxiosError(error)) {
-          console.error("Axios error details:", {
-            status: error.response?.status,
-            data: error.response?.data,
-            headers: error.response?.headers
-          });
-        }
-        throw error;
+    try {
+      console.log("Sending request with input:", userInput.trim());
+      const response = await axios.post("/api/therapy-chat", {
+        input: userInput.trim(),
+        user_id: session?.user?.id || "anonymous"
+      });
+      
+      // Add detailed response logging
+      console.log("Raw API response:", response);
+      console.log("Response data:", response.data);
+      console.log("Emotion from response:", response.data.emotion);
+
+      if (response.data.emotion) {
+        const emotion = response.data.emotion.toLowerCase();
+        console.log("Setting emotion to:", emotion);
+        setEmotion(emotion);
+      } else {
+        console.warn("No emotion detected in response:", response.data);
       }
-    };
-  
-    // ...rest of the existing code...
+
+      // Ensure response.data.response is a string
+      const botResponse = typeof response.data.response === 'string' 
+        ? response.data.response 
+        : JSON.stringify(response.data.response);
+
+      const botMessage = { 
+        id: (Date.now() + 1).toString(), 
+        content: botResponse,
+        isBot: true,
+        isNew: true
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+      // Save the updated chat to database
+      if (session?.user?.id) {
+        await axios.post("/api/chat", {
+          userId: session.user.id,
+          messages: [...messages, userMessage, botMessage].map(msg => ({
+            content: msg.content,
+            isBot: msg.isBot,
+            timestamp: new Date()
+          }))
+        });
+      }
+      
+      if (voiceMode) {
+        speakText(botMessage.content);
+      }
+      
+      setUserInput("");
+    } catch (error) {
+      console.error("Error with full details:", error);
+      setMessages(prev => [...prev, { 
+        id: Date.now().toString(), 
+        content: "Sorry, I encountered an error. Please try again.", 
+        isBot: true 
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleStopVoiceChat = () => {
