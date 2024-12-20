@@ -83,7 +83,7 @@ def detect_emotion(text: str) -> str:
     
     print("Emotion counts:", emotion_counts)
     
-    detected = max(emotion_counts.items(), key=lambda x: x[1])[0] if any(emotion_counts.values()) else 'anxious'
+    detected = max(emotion_counts.items(), key=lambda x: x[1])[0] if any(emotion_counts.values()) else ''
     print(f"Detected emotion: {detected}")
     
     return detected
