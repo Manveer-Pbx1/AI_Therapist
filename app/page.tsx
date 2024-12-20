@@ -1,12 +1,23 @@
 'use client'
 import { motion } from 'framer-motion'
-import React from 'react'
+import React, {useEffect} from 'react'
 import Navbar from './components/Navbar'
 import { useRouter } from 'next/navigation'
 import { BsFlower1 } from 'react-icons/bs'
 
 function Home() {
   const router = useRouter();
+  useEffect(() => {
+    fetch("https://ai-therapist-backend-7rre.onrender.com/health-check", {
+      method: "GET",
+      headers:{
+        "Content-Type": "application/json",
+      }
+    })
+    .then(response => response.json())
+    .then(data => console.log(data))
+    .catch(error => console.error('Error:', error));
+  }, []);
   return ( 
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
       <Navbar />
