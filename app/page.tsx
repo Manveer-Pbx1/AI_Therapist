@@ -9,7 +9,7 @@ import {exec} from 'child_process'
 function Home() {
   const router = useRouter();
   useEffect(() => {
-    fetch('/api/invoke')
+    fetch('https://ai-therapist-pi.vercel.app/api/invoke')
       .then((response) => response.json())
       .then((data) => {
         console.log('API Response:', data);
