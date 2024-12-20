@@ -1,3 +1,4 @@
+'use client'
 import { motion } from 'framer-motion'
 import React, {useEffect} from 'react'
 import Navbar from './components/Navbar'
@@ -8,27 +9,16 @@ import {exec} from 'child_process'
 function Home() {
   const router = useRouter();
   useEffect(() => {
-    const curlCommand = `
-      curl -s -X POST \
-        -H "Content-Type: application/json" \
-        -d '{"user_id":"123", "input":"Hi. Just say hi back to me."}' \
-        https://ai-therapist-backend-7rre.onrender.com/get-therapy-response
-    `;
-
-    exec(curlCommand, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error executing curl: ${error.message}`);
-        return;
-      }
-
-      if (stderr) {
-        console.error(`Curl stderr: ${stderr}`);
-        return;
-      }
-
-      console.log(`Curl response: ${stdout}`);
-    });
+    fetch('/api/therapy')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('API Response:', data);
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+      });
   }, []);
+
   return ( 
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
       <Navbar />
