@@ -8,8 +8,12 @@ import { BsFlower1 } from 'react-icons/bs'
 function Home() {
   const router = useRouter();
   useEffect(() => {
-    fetch("https://ai-therapist-backend-7rre.onrender.com/health-check", {
-      method: "GET",
+    fetch("https://ai-therapist-backend-7rre.onrender.com/get-therapy-response", {
+      method: "POST",
+      body: JSON.stringify({
+        "user_id": "123",
+        "input": "Hi. Just say hi back to me."
+      }),
       headers:{
         "Content-Type": "application/json",
       }
