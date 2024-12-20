@@ -18,10 +18,9 @@ export async function POST(request: Request) {
 
     // Prepare the curl command
     const curlCommand = `
-      curl -s -X POST \
+      curl -s -X GET \
         -H "Content-Type: application/json" \
-        -d '${JSON.stringify({ user_id, input })}' \
-        https://ai-therapist-backend-7rre.onrender.com/get-therapy-response
+        https://ai-therapist-backend-7rre.onrender.com/health-check
     `;
 
     // Execute the command
