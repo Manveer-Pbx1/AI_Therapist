@@ -4,23 +4,31 @@ import React, {useEffect} from 'react'
 import Navbar from './components/Navbar'
 import { useRouter } from 'next/navigation'
 import { BsFlower1 } from 'react-icons/bs'
+import {exec} from 'child_process'
 
 function Home() {
   const router = useRouter();
   useEffect(() => {
-    fetch("https://ai-therapist-backend-7rre.onrender.com/get-therapy-response", {
-      method: "POST",
-      body: JSON.stringify({
-        "user_id": "123",
-        "input": "Hi. Just say hi back to me."
-      }),
-      headers:{
-        "Content-Type": "application/json",
+    const curlCommand = `
+      curl -s -X POST \
+        -H "Content-Type: application/json" \
+        -d '{"user_id":"123", "input":"Hi. Just say hi back to me."}' \
+        https://ai-therapist-backend-7rre.onrender.com/get-therapy-response
+    `;
+
+    exec(curlCommand, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing curl: ${error.message}`);
+        return;
       }
-    })
-    .then(response => response.json())
-    .then(data => console.log(data))
-    .catch(error => console.error('Error:', error));
+
+      if (stderr) {
+        console.error(`Curl stderr: ${stderr}`);
+        return;
+      }
+
+      console.log(`Curl response: ${stdout}`);
+    });
   }, []);
   return ( 
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white overflow-hidden">
