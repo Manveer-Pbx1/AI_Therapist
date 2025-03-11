@@ -25,7 +25,7 @@ if not api_key:
 # Initialize the Gemini model
 llm = ChatGoogleGenerativeAI(
     api_key=api_key,
-    model="gemini-2.0-pro",
+    model="gemini-2.0-flash",
     temperature=0.9,
     max_tokens=None,
     timeout=None,
